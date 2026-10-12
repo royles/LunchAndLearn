@@ -1,0 +1,25 @@
+name: Local LLM Chat
+description: >-
+  React + FastAPI chat application for Cloudera AI Workbench with SQLite history,
+  OpenAI-compatible local LLM streaming, and multimodal image support.
+author: Cloudera AI Workbench Project
+date: "2026-10-12"
+specification_version: "1.0"
+prototype_version: "0.1.0"
+environment_variables:
+  CDSW_APP_POLLING_ENDPOINT:
+    default: "/healthcheck"
+    description: Health endpoint for CML application status polling
+  LLM_BASE_URL:
+    default: "http://127.0.0.1:11434/v1"
+    description: OpenAI-compatible API base URL
+  LLM_MODEL:
+    default: "llama3.2"
+    description: Model id for chat completions
+tasks:
+  - type: start_application
+    subdomain: local-llm-chat
+    script: entry.py
+    kernel: python3
+    environment_variables:
+      CDSW_APP_POLLING_ENDPOINT: "/healthcheck"
