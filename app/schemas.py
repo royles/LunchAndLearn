@@ -63,3 +63,22 @@ class ChatRequest(BaseModel):
 
 class ConversationUpdate(BaseModel):
     title: str = Field(min_length=1, max_length=256)
+
+
+class ChatAuditEntryOut(BaseModel):
+    id: int
+    conversation_id: int | None
+    user_message_id: int
+    assistant_message_id: int | None
+    prompt_text: str
+    prompt_content: Any
+    response_text: str | None
+    image_count: int
+    model_id: str
+    model_endpoint_url: str
+    remote_user: str | None
+    remote_user_perm: str | None
+    status: str
+    error_message: str | None
+    started_at: datetime
+    completed_at: datetime | None

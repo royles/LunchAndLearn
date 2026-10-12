@@ -3,5 +3,6 @@ __pycache__/
 .venv/
 data/*.db
 data/.token_encryption_key
+data/audit/
 frontend/node_modules/
 .env

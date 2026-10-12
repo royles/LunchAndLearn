@@ -98,6 +98,16 @@ git add frontend/dist && git commit -m "Rebuild frontend dist"
 - `GET/POST /api/v1/conversations` — list / create chats
 - `GET /api/v1/conversations/{id}/messages` — history
 - `POST /api/v1/conversations/{id}/chat` — **SSE** stream (`data: {"type":"token","content":"..."}` … `{"type":"done","message":{...}}`)
+- `GET /api/v1/audit-log` — prompt/response audit (`?conversation_id=&limit=`)
+
+### Chat audit log
+
+Every prompt/response pair is written to:
+
+- **SQLite** `chat_audit_log` (full prompt payload, response, model, Workbench user headers, status, timestamps)
+- **Append-only** `data/audit/chat_audit.jsonl` (`exchange_started` / `exchange_completed` / `exchange_failed`)
+
+Rows are retained if a conversation is deleted. Set `AUDIT_JSONL_PATH` to override the JSONL file location.
 
 Multimodal requests include `images: [{ "mime_type": "image/png", "data": "<base64>" }]`.
 

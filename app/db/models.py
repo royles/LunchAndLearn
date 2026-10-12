@@ -39,6 +39,33 @@ class Conversation(Base):
     )
 
 
+class ChatAuditEntry(Base):
+    """Append-only style audit of each user prompt and assistant response."""
+
+    __tablename__ = "chat_audit_log"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    conversation_id: Mapped[int | None] = mapped_column(
+        Integer, index=True, nullable=True
+    )
+    user_message_id: Mapped[int] = mapped_column(Integer, index=True)
+    assistant_message_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    prompt_text: Mapped[str] = mapped_column(Text)
+    prompt_content_json: Mapped[str] = mapped_column(Text)
+    response_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    image_count: Mapped[int] = mapped_column(Integer, default=0)
+    model_id: Mapped[str] = mapped_column(String(256))
+    model_endpoint_url: Mapped[str] = mapped_column(String(2048))
+    remote_user: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    remote_user_perm: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    status: Mapped[str] = mapped_column(String(32), default="in_progress")
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
 class Message(Base):
     __tablename__ = "messages"
 

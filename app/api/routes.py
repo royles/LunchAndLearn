@@ -6,9 +6,10 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.db.models import Conversation, Message
+from app.db.models import ChatAuditEntry, Conversation, Message
 from app.db.session import SessionLocal, get_db
 from app.schemas import (
+    ChatAuditEntryOut,
     ChatRequest,
     ConversationCreate,
     ConversationOut,
@@ -16,6 +17,12 @@ from app.schemas import (
     MessageOut,
     ModelSettingsPublic,
     ModelSettingsUpdate,
+)
+from app.services.audit_log import (
+    audit_entry_to_dict,
+    record_exchange_completed,
+    record_exchange_failed,
+    record_exchange_started,
 )
 from app.services.crypto import TokenEncryptionError
 from app.services.model_settings import (
@@ -58,6 +65,20 @@ def put_model_settings(
     except TokenEncryptionError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     return to_public(row)
+
+
+@router.get("/audit-log", response_model=list[ChatAuditEntryOut])
+def list_audit_log(
+    db: Session = Depends(get_db),
+    conversation_id: int | None = None,
+    limit: int = 100,
+) -> list[dict]:
+    stmt = select(ChatAuditEntry).order_by(ChatAuditEntry.started_at.desc())
+    if conversation_id is not None:
+        stmt = stmt.where(ChatAuditEntry.conversation_id == conversation_id)
+    stmt = stmt.limit(min(max(limit, 1), 500))
+    rows = list(db.scalars(stmt).all())
+    return [audit_entry_to_dict(r) for r in rows]
 
 
 @router.get("/me")
@@ -119,12 +140,13 @@ def list_messages(conversation_id: int, db: Session = Depends(get_db)) -> list[d
 
 
 def _message_to_out(message: Message) -> dict:
+    created = message.created_at
     return {
         "id": message.id,
         "conversation_id": message.conversation_id,
         "role": message.role,
         "content": parse_stored_content(message.content),
-        "created_at": message.created_at,
+        "created_at": created.isoformat() if hasattr(created, "isoformat") else created,
     }
 
 
@@ -132,6 +154,7 @@ def _message_to_out(message: Message) -> dict:
 async def chat_stream(
     conversation_id: int,
     body: ChatRequest,
+    request: Request,
     db: Session = Depends(get_db),
 ):
     conv = db.get(Conversation, conversation_id)
@@ -167,6 +190,17 @@ async def chat_stream(
     except TokenEncryptionError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
+    audit_entry = record_exchange_started(
+        db,
+        conversation_id=conversation_id,
+        user_message_id=user_msg.id,
+        prompt_content=parse_stored_content(user_msg.content),
+        model_id=body.model or resolved.model_id,
+        model_endpoint_url=resolved.endpoint_url,
+        remote_user=request.headers.get("REMOTE-USER"),
+        remote_user_perm=request.headers.get("REMOTE-USER-PERM"),
+    )
+
     async def event_generator():
         assistant_parts: list[str] = []
         try:
@@ -177,6 +211,18 @@ async def chat_stream(
                 payload = json.dumps({"type": "token", "content": token})
                 yield f"data: {payload}\n\n"
         except Exception as exc:
+            fail_db = SessionLocal()
+            try:
+                row = fail_db.get(ChatAuditEntry, audit_entry.id)
+                if row:
+                    record_exchange_failed(
+                        fail_db,
+                        row,
+                        error_message=str(exc),
+                        partial_response="".join(assistant_parts) or None,
+                    )
+            finally:
+                fail_db.close()
             err = json.dumps({"type": "error", "message": str(exc)})
             yield f"data: {err}\n\n"
             yield "data: {\"type\": \"done\"}\n\n"
@@ -196,6 +242,14 @@ async def chat_stream(
                 c.updated_at = datetime.now(timezone.utc)
             save_db.commit()
             save_db.refresh(assistant_msg)
+            audit_row = save_db.get(ChatAuditEntry, audit_entry.id)
+            if audit_row:
+                record_exchange_completed(
+                    save_db,
+                    audit_row,
+                    assistant_message_id=assistant_msg.id,
+                    response_text=full_text,
+                )
             done_payload = json.dumps(
                 {
                     "type": "done",

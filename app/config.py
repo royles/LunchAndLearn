@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     model_token_encryption_key: str = ""
     model_token_encryption_key_file: Path | None = None
 
+    audit_jsonl_path: Path | None = None
+
     @property
     def database_url(self) -> str:
         db_path = self.state_db_path or (self.project_root / "data" / "state.db")
