@@ -26,10 +26,8 @@ _FALLBACK_HTML = """<!DOCTYPE html>
   <h1>UI not built yet</h1>
   <p>The API is running, but the React frontend has not been built to
      <code>frontend/dist</code>.</p>
-  <p>From the project root, run:</p>
-  <pre><code>cd frontend && npm ci && npm run build</code></pre>
-  <p>On Workbench, npm is usually unavailable — rebuild on a dev machine with
-     <code>./scripts/build-frontend.sh</code> and push <code>frontend/dist</code> to git.</p>
+  <p>The repo normally includes a prebuilt <code>frontend/dist</code>. If it is missing,
+     rebuild on a dev machine with <code>./scripts/build-frontend.sh</code> and push to git.</p>
   <p>API docs: <a href="/docs">/docs</a> · Health: <a href="/healthcheck">/healthcheck</a></p>
 </body>
 </html>"""

@@ -20,7 +20,16 @@ Bind the server to **`127.0.0.1`** and the port provided by the platform:
 
 Set **`CDSW_APP_POLLING_ENDPOINT=/healthcheck`** when creating the Application.
 
-**Script:** `entry.py` — runs `pip install -r requirements.txt` on startup (set `SKIP_DEPENDENCY_INSTALL=1` to skip). Serves the **committed** `frontend/dist` bundle; no npm required on Workbench.
+### Single entrypoint
+
+Everything runs from **`entry.py`** — no separate frontend server, job, or npm on Workbench:
+
+1. `pip install -r requirements.txt` (unless `SKIP_DEPENDENCY_INSTALL=1`)
+2. Start **uvicorn** on `127.0.0.1` + `CDSW_APP_PORT` / `CDSW_READONLY_PORT`
+3. Serve **API** (`/api/v1/*`), **health** (`/healthcheck`), and **UI** (`/` from committed `frontend/dist`)
+4. Initialize **SQLite** on startup
+
+**CML Application script:** `entry.py` only.
 
 ## Environment variables
 
