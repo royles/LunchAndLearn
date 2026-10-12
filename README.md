@@ -20,7 +20,7 @@ Bind the server to **`127.0.0.1`** and the port provided by the platform:
 
 Set **`CDSW_APP_POLLING_ENDPOINT=/healthcheck`** when creating the Application.
 
-**Script:** `entry.py` — runs `pip install -r requirements.txt` before startup (set `SKIP_DEPENDENCY_INSTALL=1` to skip).
+**Script:** `entry.py` — runs `pip install -r requirements.txt` and builds `frontend/dist` via npm when missing (skip with `SKIP_DEPENDENCY_INSTALL=1` / `SKIP_FRONTEND_BUILD=1`).
 
 ## Environment variables
 
@@ -32,6 +32,7 @@ Set **`CDSW_APP_POLLING_ENDPOINT=/healthcheck`** when creating the Application.
 | `LLM_MODEL` | `llama3.2` | Initial model id until configured in the UI |
 | `LLM_MAX_TOKENS` | `4096` | Max tokens per completion |
 | `STATE_DB_PATH` | `data/state.db` | SQLite file path (project NFS on CML) |
+| `SKIP_DEPENDENCY_INSTALL` | _(unset)_ | Set to `1` to skip automatic pip install in `entry.py` |
 
 Generate an encryption key:
 
@@ -65,7 +66,6 @@ Open http://localhost:5173 (Vite proxies `/api` to port 8090).
 ## Production build (CML deploy)
 
 ```bash
-pip3 install -r requirements.txt
 cd frontend && npm ci && npm run build
 CDSW_APP_PORT=8090 python3 entry.py
 ```
@@ -77,7 +77,7 @@ Open http://127.0.0.1:8090 for the combined UI + API.
 1. Import this Git repository as a project.
 2. Build the UI (requires Node in the session or build elsewhere and sync `frontend/dist`):
    `cd frontend && npm ci && npm run build`
-4. **Applications → New Application**
+3. **Applications → New Application**
    - **Script:** `entry.py`
    - **Subdomain:** your choice (DNS-safe)
    - **Environment:** `CDSW_APP_POLLING_ENDPOINT=/healthcheck`, plus `LLM_*` as needed
