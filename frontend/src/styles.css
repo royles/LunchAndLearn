@@ -185,13 +185,7 @@ body {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-
-.conv-item:hover .conv-rename,
-.conv-item.active .conv-rename {
-  opacity: 1;
+  flex-shrink: 0;
 }
 
 .conv-rename:hover {
@@ -244,10 +238,37 @@ body {
   border-bottom: 1px solid var(--border);
 }
 
-.main-header h2 {
+.main-header-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.main-title-text {
   margin: 0;
   font-size: 1rem;
   font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header-rename-btn {
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.header-rename-btn:hover {
+  border-color: var(--accent);
 }
 
 .banner.error {

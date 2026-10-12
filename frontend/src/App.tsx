@@ -13,7 +13,10 @@ import {
   type ModelSettingsPublic,
 } from "./api/client";
 import { ChatComposer } from "./components/ChatComposer";
-import { EditableConversationTitle } from "./components/EditableConversationTitle";
+import {
+  EditableConversationTitle,
+  preventBlurOnPointerDown,
+} from "./components/EditableConversationTitle";
 import { MessageBubble } from "./components/MessageBubble";
 import { ModelSettingsPanel } from "./components/ModelSettingsPanel";
 
@@ -67,14 +70,15 @@ export default function App() {
   }, [activeId]);
 
   async function commitTitle(conversationId: number, title: string) {
-    setEditingId(null);
+    const trimmed = title.trim() || "New chat";
     const previous = conversations.find((c) => c.id === conversationId)?.title;
-    if (previous === title) return;
+    setEditingId(null);
+    if (previous === trimmed) return;
     setConversations((prev) =>
-      prev.map((c) => (c.id === conversationId ? { ...c, title } : c)),
+      prev.map((c) => (c.id === conversationId ? { ...c, title: trimmed } : c)),
     );
     try {
-      const updated = await renameConversation(conversationId, title);
+      const updated = await renameConversation(conversationId, trimmed);
       setConversations((prev) =>
         prev.map((c) => (c.id === conversationId ? updated : c)),
       );
@@ -93,6 +97,7 @@ export default function App() {
     if (!conv) return;
     setEditingId(conversationId);
     setTitleDraft(conv.title);
+    setActiveId(conversationId);
   }
 
   async function handleNewChat() {
@@ -211,6 +216,7 @@ export default function App() {
                 type="button"
                 className="conv-rename"
                 title="Rename"
+                onMouseDown={preventBlurOnPointerDown}
                 onClick={() => startEditing(c.id)}
               >
                 Edit
@@ -219,6 +225,7 @@ export default function App() {
                 type="button"
                 className="conv-delete"
                 title="Delete"
+                onMouseDown={preventBlurOnPointerDown}
                 onClick={() => handleDelete(c.id)}
               >
                 ×
@@ -244,21 +251,25 @@ export default function App() {
       />
 
       <main className="main">
-        <header className="main-header">
+        <header className="main-header main-header-row">
           {activeConversation ? (
-            <EditableConversationTitle
-              conversationId={activeConversation.id}
-              title={activeConversation.title}
-              isEditing={editingId === activeConversation.id}
-              draft={editingId === activeConversation.id ? titleDraft : activeConversation.title}
-              className="main-title"
-              onStartEdit={startEditing}
-              onChangeDraft={setTitleDraft}
-              onCommit={commitTitle}
-              onCancel={() => setEditingId(null)}
-            />
+            <>
+              <h2 className="main-title-text">
+                {editingId === activeConversation.id
+                  ? titleDraft
+                  : activeConversation.title}
+              </h2>
+              <button
+                type="button"
+                className="header-rename-btn"
+                onMouseDown={preventBlurOnPointerDown}
+                onClick={() => startEditing(activeConversation.id)}
+              >
+                Rename
+              </button>
+            </>
           ) : (
-            <h2>Chat</h2>
+            <h2 className="main-title-text">Chat</h2>
           )}
         </header>
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, type KeyboardEvent } from "react";
+import { useEffect, useRef, type KeyboardEvent, type MouseEvent } from "react";
 
 type Props = {
   conversationId: number;
@@ -12,6 +12,8 @@ type Props = {
   onCancel: () => void;
   onSelect?: (conversationId: number) => void;
   draft: string;
+  /** Only the sidebar row hosts the input; avoids duplicate fields for the active chat. */
+  allowInlineEdit?: boolean;
 };
 
 export function EditableConversationTitle({
@@ -26,15 +28,16 @@ export function EditableConversationTitle({
   onCancel,
   onSelect,
   draft,
+  allowInlineEdit = true,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (isEditing) {
+    if (isEditing && allowInlineEdit) {
       inputRef.current?.focus();
       inputRef.current?.select();
     }
-  }, [isEditing, conversationId]);
+  }, [isEditing, allowInlineEdit, conversationId]);
 
   function commit() {
     const trimmed = draft.trim() || "New chat";
@@ -51,7 +54,7 @@ export function EditableConversationTitle({
     }
   }
 
-  if (isEditing) {
+  if (isEditing && allowInlineEdit) {
     return (
       <input
         ref={inputRef}
@@ -60,6 +63,7 @@ export function EditableConversationTitle({
         value={draft}
         maxLength={256}
         placeholder={placeholder}
+        aria-label="Chat title"
         onChange={(e) => onChangeDraft(e.target.value)}
         onBlur={commit}
         onKeyDown={onKeyDown}
@@ -74,12 +78,18 @@ export function EditableConversationTitle({
     <button
       type="button"
       className={`conv-title ${className}`.trim()}
-      title="Double-click to rename"
+      title={isHeader ? "Rename this chat" : "Open chat · double-click to rename"}
       onClick={() => {
-        if (!isHeader) onSelect?.(conversationId);
+        if (isHeader) {
+          onStartEdit(conversationId);
+          onChangeDraft(title);
+        } else {
+          onSelect?.(conversationId);
+        }
       }}
       onDoubleClick={(e) => {
         e.preventDefault();
+        e.stopPropagation();
         onStartEdit(conversationId);
         onChangeDraft(title);
       }}
@@ -87,4 +97,9 @@ export function EditableConversationTitle({
       {title}
     </button>
   );
+}
+
+/** Prevents blur on the title input before Edit / Delete click handlers run. */
+export function preventBlurOnPointerDown(e: MouseEvent) {
+  e.preventDefault();
 }
