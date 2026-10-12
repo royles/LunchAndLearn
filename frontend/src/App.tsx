@@ -31,6 +31,15 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [titleDraft, setTitleDraft] = useState("");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const closeDrawer = () => setDrawerOpen(false);
+  const openDrawer = () => setDrawerOpen(true);
+
+  function selectConversation(id: number) {
+    setActiveId(id);
+    closeDrawer();
+  }
 
   const refreshConversations = useCallback(async () => {
     const list = await listConversations();
@@ -108,6 +117,12 @@ export default function App() {
     setStreamingText("");
     setEditingId(conv.id);
     setTitleDraft(conv.title);
+    closeDrawer();
+  }
+
+  function openModelSettings() {
+    setSettingsOpen(true);
+    closeDrawer();
   }
 
   async function handleDelete(id: number) {
@@ -173,14 +188,31 @@ export default function App() {
   const activeConversation = conversations.find((c) => c.id === activeId);
 
   return (
-    <div className="shell">
-      <aside className="sidebar">
-        <div className="brand">
-          <span className="brand-mark" />
-          <div>
-            <h1>Local LLM</h1>
-            <p className="brand-sub">OpenAI-compatible · streaming · vision</p>
+    <div className={`shell${drawerOpen ? " drawer-open" : ""}`}>
+      <button
+        type="button"
+        className="sidebar-backdrop"
+        aria-label="Close chat list"
+        tabIndex={drawerOpen ? 0 : -1}
+        onClick={closeDrawer}
+      />
+      <aside className="sidebar" aria-hidden={!drawerOpen ? undefined : false}>
+        <div className="sidebar-top">
+          <div className="brand">
+            <span className="brand-mark" />
+            <div>
+              <h1>Local LLM</h1>
+              <p className="brand-sub">OpenAI-compatible · streaming · vision</p>
+            </div>
           </div>
+          <button
+            type="button"
+            className="sidebar-close-btn"
+            aria-label="Close menu"
+            onClick={closeDrawer}
+          >
+            Close
+          </button>
         </div>
         <div className="sidebar-actions">
           <button type="button" className="new-chat-btn" onClick={handleNewChat}>
@@ -189,7 +221,7 @@ export default function App() {
           <button
             type="button"
             className="settings-btn"
-            onClick={() => setSettingsOpen(true)}
+            onClick={openModelSettings}
             title="Model settings"
           >
             Model
@@ -210,7 +242,7 @@ export default function App() {
                 onChangeDraft={setTitleDraft}
                 onCommit={commitTitle}
                 onCancel={() => setEditingId(null)}
-                onSelect={setActiveId}
+                onSelect={selectConversation}
               />
               <button
                 type="button"
@@ -252,6 +284,15 @@ export default function App() {
 
       <main className="main">
         <header className="main-header main-header-row">
+          <button
+            type="button"
+            className="mobile-menu-btn"
+            aria-label="Open chats and settings"
+            aria-expanded={drawerOpen}
+            onClick={openDrawer}
+          >
+            Menu
+          </button>
           {activeConversation ? (
             <>
               <h2 className="main-title-text">
@@ -259,14 +300,23 @@ export default function App() {
                   ? titleDraft
                   : activeConversation.title}
               </h2>
-              <button
-                type="button"
-                className="header-rename-btn"
-                onMouseDown={preventBlurOnPointerDown}
-                onClick={() => startEditing(activeConversation.id)}
-              >
-                Rename
-              </button>
+              <div className="header-actions">
+                <button
+                  type="button"
+                  className="header-icon-btn mobile-only"
+                  onClick={handleNewChat}
+                >
+                  New
+                </button>
+                <button
+                  type="button"
+                  className="header-rename-btn"
+                  onMouseDown={preventBlurOnPointerDown}
+                  onClick={() => startEditing(activeConversation.id)}
+                >
+                  Rename
+                </button>
+              </div>
             </>
           ) : (
             <h2 className="main-title-text">Chat</h2>
