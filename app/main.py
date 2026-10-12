@@ -28,7 +28,8 @@ _FALLBACK_HTML = """<!DOCTYPE html>
      <code>frontend/dist</code>.</p>
   <p>From the project root, run:</p>
   <pre><code>cd frontend && npm ci && npm run build</code></pre>
-  <p>Restart the application (or rely on automatic build on startup if Node.js is available).</p>
+  <p>On Workbench, npm is usually unavailable — rebuild on a dev machine with
+     <code>./scripts/build-frontend.sh</code> and push <code>frontend/dist</code> to git.</p>
   <p>API docs: <a href="/docs">/docs</a> · Health: <a href="/healthcheck">/healthcheck</a></p>
 </body>
 </html>"""

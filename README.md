@@ -4,7 +4,7 @@ React chat UI with a **FastAPI** backend, **SQLite** conversation store, and an 
 
 ## Architecture
 
-- **Frontend:** React (Vite) — served from `frontend/dist` by FastAPI on the same port
+- **Frontend:** React (Vite) — prebuilt assets in **`frontend/dist`** (committed to git; Workbench has no Node/npm)
 - **API:** `/api/v1/*` — conversations, messages, streaming chat (SSE)
 - **State:** SQLite at `data/state.db` (override with `STATE_DB_PATH`)
 - **LLM:** Configured via environment variables; uses the OpenAI Chat Completions API with `stream=True`
@@ -20,7 +20,7 @@ Bind the server to **`127.0.0.1`** and the port provided by the platform:
 
 Set **`CDSW_APP_POLLING_ENDPOINT=/healthcheck`** when creating the Application.
 
-**Script:** `entry.py` — runs `pip install -r requirements.txt` and builds `frontend/dist` via npm when missing (skip with `SKIP_DEPENDENCY_INSTALL=1` / `SKIP_FRONTEND_BUILD=1`).
+**Script:** `entry.py` — runs `pip install -r requirements.txt` on startup (set `SKIP_DEPENDENCY_INSTALL=1` to skip). Serves the **committed** `frontend/dist` bundle; no npm required on Workbench.
 
 ## Environment variables
 
@@ -63,21 +63,19 @@ cd frontend && npm ci && npm run dev
 
 Open http://localhost:5173 (Vite proxies `/api` to port 8090).
 
-## Production build (CML deploy)
+## Updating the UI (developers only — Node.js required)
+
+Workbench runtimes typically **do not include npm**. Production static files live in **`frontend/dist`** and are **checked into git**. After changing React code on a dev machine:
 
 ```bash
-cd frontend && npm ci && npm run build
-CDSW_APP_PORT=8090 python3 entry.py
+./scripts/build-frontend.sh
+git add frontend/dist && git commit -m "Rebuild frontend dist"
 ```
-
-Open http://127.0.0.1:8090 for the combined UI + API.
 
 ## Deploy on Cloudera AI Workbench
 
-1. Import this Git repository as a project.
-2. Build the UI (requires Node in the session or build elsewhere and sync `frontend/dist`):
-   `cd frontend && npm ci && npm run build`
-3. **Applications → New Application**
+1. Import this Git repository as a project (includes prebuilt `frontend/dist`).
+2. **Applications → New Application**
    - **Script:** `entry.py`
    - **Subdomain:** your choice (DNS-safe)
    - **Environment:** `CDSW_APP_POLLING_ENDPOINT=/healthcheck`, plus `LLM_*` as needed
