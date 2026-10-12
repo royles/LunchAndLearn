@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pathlib import Path
 
 from cryptography.fernet import Fernet, InvalidToken
 
@@ -9,18 +10,48 @@ class TokenEncryptionError(Exception):
     pass
 
 
+def _encryption_key_path() -> Path:
+    custom = settings.model_token_encryption_key_file
+    if custom:
+        return custom.resolve()
+    return (settings.project_root / "data" / ".token_encryption_key").resolve()
+
+
+def resolve_encryption_key() -> str:
+    """
+    Fernet key for token encryption at rest.
+
+    Priority: MODEL_TOKEN_ENCRYPTION_KEY env → persisted file on project storage →
+    generate and persist a new key (typical Cloudera Workbench path).
+    """
+    if settings.model_token_encryption_key.strip():
+        return settings.model_token_encryption_key.strip()
+
+    path = _encryption_key_path()
+    if path.is_file():
+        key = path.read_text(encoding="utf-8").strip()
+        if key:
+            return key
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    key = Fernet.generate_key().decode("ascii")
+    path.write_text(key, encoding="utf-8")
+    try:
+        path.chmod(0o600)
+    except OSError:
+        pass
+    return key
+
+
 @lru_cache
 def _fernet() -> Fernet:
-    key = settings.model_token_encryption_key
-    if not key:
-        raise TokenEncryptionError(
-            "MODEL_TOKEN_ENCRYPTION_KEY is not set. "
-            'Generate one with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"'
-        )
+    key = resolve_encryption_key()
     try:
-        return Fernet(key.encode() if isinstance(key, str) else key)
+        return Fernet(key.encode("ascii"))
     except (ValueError, TypeError) as exc:
-        raise TokenEncryptionError("MODEL_TOKEN_ENCRYPTION_KEY is not a valid Fernet key") from exc
+        raise TokenEncryptionError(
+            "MODEL_TOKEN_ENCRYPTION_KEY is not a valid Fernet key"
+        ) from exc
 
 
 def encrypt_token(plaintext: str) -> str:

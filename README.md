@@ -35,7 +35,8 @@ Everything runs from **`entry.py`** — no separate frontend server, job, or npm
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `MODEL_TOKEN_ENCRYPTION_KEY` | _(required to save tokens)_ | Fernet key for encrypting model tokens in SQLite |
+| `MODEL_TOKEN_ENCRYPTION_KEY` | _(optional)_ | Fernet key; if unset, auto-generated and stored in `data/.token_encryption_key` on project NFS |
+| `MODEL_TOKEN_ENCRYPTION_KEY_FILE` | `data/.token_encryption_key` | Override path for the persisted auto-generated key |
 | `LLM_BASE_URL` | `http://127.0.0.1:11434/v1` | Initial endpoint until configured in the UI |
 | `LLM_API_KEY` | `not-needed` | Optional seed token (encrypted on first boot if key is set) |
 | `LLM_MODEL` | `llama3.2` | Initial model id until configured in the UI |

@@ -12,8 +12,8 @@ environment_variables:
     description: Health endpoint for CML application status polling
   MODEL_TOKEN_ENCRYPTION_KEY:
     default: ""
-    description: Fernet key for encrypting model tokens at rest (required to save tokens)
-    required: true
+    description: Optional Fernet key; if empty, one is created in data/.token_encryption_key
+    required: false
   LLM_BASE_URL:
     default: "http://127.0.0.1:11434/v1"
     description: Initial OpenAI-compatible API base URL (overridden by UI settings in SQLite)

@@ -5,7 +5,12 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.db.models import ModelSettings
-from app.services.crypto import decrypt_token, encrypt_token, mask_token_configured
+from app.services.crypto import (
+    decrypt_token,
+    encrypt_token,
+    mask_token_configured,
+    resolve_encryption_key,
+)
 
 SETTINGS_ROW_ID = 1
 
@@ -25,12 +30,12 @@ def get_or_create_settings(db: Session) -> ModelSettings:
     row = db.get(ModelSettings, SETTINGS_ROW_ID)
     if row is None:
         token_ciphertext = None
-        if (
-            settings.model_token_encryption_key
-            and settings.llm_api_key
-            and settings.llm_api_key != "not-needed"
-        ):
-            token_ciphertext = encrypt_token(settings.llm_api_key)
+        if settings.llm_api_key and settings.llm_api_key != "not-needed":
+            try:
+                resolve_encryption_key()
+                token_ciphertext = encrypt_token(settings.llm_api_key)
+            except Exception:
+                token_ciphertext = None
         row = ModelSettings(
             id=SETTINGS_ROW_ID,
             endpoint_url=settings.llm_base_url,
