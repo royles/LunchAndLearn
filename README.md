@@ -29,7 +29,7 @@ Everything runs from **`entry.py`** — no separate frontend server, job, or npm
 3. Serve **API** (`/api/v1/*`), **health** (`/healthcheck`), and **UI** (`/` from committed `frontend/dist`)
 4. Initialize **SQLite** on startup
 
-**CML Application script:** `entry.py` only.
+**CML Application script:** `entry.py` only (supports IPython exec on Workbench where `__file__` is undefined; uses project working directory or `PROJECT_ROOT`).
 
 ## Environment variables
 

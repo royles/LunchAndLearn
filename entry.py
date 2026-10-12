@@ -7,8 +7,34 @@ import subprocess
 import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parent
+
+def _entry_project_root() -> Path:
+    """Project root when this file is executed as a script or via IPython exec."""
+    if globals().get("__file__"):
+        return Path(__file__).resolve().parent
+    # Deferred import: app.paths uses app/config package layout.
+    root = Path.cwd()
+    if (root / "app").is_dir() and (root / "requirements.txt").is_file():
+        return root.resolve()
+    for key in ("PROJECT_ROOT", "CDSW_PROJECT", "CDSW_WORKING_DIRECTORY"):
+        raw = os.environ.get(key)
+        if raw:
+            candidate = Path(raw).expanduser()
+            if candidate.is_dir():
+                return candidate.resolve()
+    return root.resolve()
+
+
+def _prepare_environment(project_root: Path) -> None:
+    root_str = str(project_root)
+    if root_str not in sys.path:
+        sys.path.insert(0, root_str)
+    os.chdir(project_root)
+
+
+PROJECT_ROOT = _entry_project_root()
 REQUIREMENTS_FILE = PROJECT_ROOT / "requirements.txt"
+_prepare_environment(PROJECT_ROOT)
 
 
 def ensure_dependencies() -> None:
@@ -58,5 +84,10 @@ def main() -> None:
     )
 
 
+# Cloudera AI may execute this script inside IPython (Cell In[n]) without __file__.
 if __name__ == "__main__":
     main()
+else:
+    # Application runner: exec entire file with __name__ != "__main__"
+    if os.environ.get("CDSW_APP_PORT") or os.environ.get("CDSW_READONLY_PORT"):
+        main()

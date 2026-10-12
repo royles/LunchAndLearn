@@ -2,6 +2,8 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.paths import resolve_project_root
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
@@ -9,7 +11,7 @@ class Settings(BaseSettings):
     host: str = "127.0.0.1"
     port: int = 8090
 
-    project_root: Path = Path(__file__).resolve().parents[1]
+    project_root: Path = resolve_project_root()
     state_db_path: Path | None = None
     frontend_dist: Path | None = None
 
