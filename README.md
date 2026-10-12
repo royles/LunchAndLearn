@@ -20,7 +20,7 @@ Bind the server to **`127.0.0.1`** and the port provided by the platform:
 
 Set **`CDSW_APP_POLLING_ENDPOINT=/healthcheck`** when creating the Application.
 
-**Script:** `entry.py`
+**Script:** `entry.py` — runs `pip install -r requirements.txt` before startup (set `SKIP_DEPENDENCY_INSTALL=1` to skip).
 
 ## Environment variables
 
@@ -75,8 +75,7 @@ Open http://127.0.0.1:8090 for the combined UI + API.
 ## Deploy on Cloudera AI Workbench
 
 1. Import this Git repository as a project.
-2. In a **Python 3** session: `pip3 install -r requirements.txt`.
-3. Build the UI (requires Node in the session or build elsewhere and sync `frontend/dist`):
+2. Build the UI (requires Node in the session or build elsewhere and sync `frontend/dist`):
    `cd frontend && npm ci && npm run build`
 4. **Applications → New Application**
    - **Script:** `entry.py`
