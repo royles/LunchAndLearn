@@ -136,16 +136,66 @@ body {
 
 .conv-title {
   flex: 1;
+  min-width: 0;
   text-align: left;
   border: none;
   background: transparent;
   color: var(--text);
-  padding: 10px 12px;
+  padding: 10px 8px 10px 12px;
   cursor: pointer;
   font-size: 0.9rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.conv-title.main-title {
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0;
+  cursor: text;
+}
+
+.conv-title-input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--accent);
+  background: var(--bg);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: var(--font);
+  font-size: 0.9rem;
+}
+
+.main-header .conv-title-input {
+  font-size: 1rem;
+  font-weight: 600;
+  width: 100%;
+  max-width: 28rem;
+}
+
+.conv-rename {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  padding: 0 6px;
+  cursor: pointer;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.conv-item:hover .conv-rename,
+.conv-item.active .conv-rename {
+  opacity: 1;
+}
+
+.conv-rename:hover {
+  color: var(--accent);
 }
 
 .conv-delete {

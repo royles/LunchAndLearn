@@ -82,6 +82,16 @@ export async function deleteConversation(id: number): Promise<void> {
   if (!res.ok) throw new Error(await res.text());
 }
 
+export async function renameConversation(id: number, title: string): Promise<Conversation> {
+  return parseJson(
+    await fetch(`/api/v1/conversations/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title }),
+    }),
+  );
+}
+
 export async function listMessages(conversationId: number): Promise<Message[]> {
   return parseJson(await fetch(`/api/v1/conversations/${conversationId}/messages`));
 }

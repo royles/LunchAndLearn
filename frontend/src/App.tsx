@@ -5,6 +5,7 @@ import {
   fetchModelSettings,
   listConversations,
   listMessages,
+  renameConversation,
   streamChat,
   type Conversation,
   type ImageAttachment,
@@ -12,6 +13,7 @@ import {
   type ModelSettingsPublic,
 } from "./api/client";
 import { ChatComposer } from "./components/ChatComposer";
+import { EditableConversationTitle } from "./components/EditableConversationTitle";
 import { MessageBubble } from "./components/MessageBubble";
 import { ModelSettingsPanel } from "./components/ModelSettingsPanel";
 
@@ -24,6 +26,8 @@ export default function App() {
   const [streamingText, setStreamingText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [titleDraft, setTitleDraft] = useState("");
 
   const refreshConversations = useCallback(async () => {
     const list = await listConversations();
@@ -40,6 +44,8 @@ export default function App() {
           const created = await createConversation();
           setConversations([created]);
           setActiveId(created.id);
+          setEditingId(created.id);
+          setTitleDraft(created.title);
         } else {
           setActiveId(list[0].id);
         }
@@ -60,16 +66,48 @@ export default function App() {
     })();
   }, [activeId]);
 
+  async function commitTitle(conversationId: number, title: string) {
+    setEditingId(null);
+    const previous = conversations.find((c) => c.id === conversationId)?.title;
+    if (previous === title) return;
+    setConversations((prev) =>
+      prev.map((c) => (c.id === conversationId ? { ...c, title } : c)),
+    );
+    try {
+      const updated = await renameConversation(conversationId, title);
+      setConversations((prev) =>
+        prev.map((c) => (c.id === conversationId ? updated : c)),
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to rename chat");
+      if (previous != null) {
+        setConversations((prev) =>
+          prev.map((c) => (c.id === conversationId ? { ...c, title: previous } : c)),
+        );
+      }
+    }
+  }
+
+  function startEditing(conversationId: number) {
+    const conv = conversations.find((c) => c.id === conversationId);
+    if (!conv) return;
+    setEditingId(conversationId);
+    setTitleDraft(conv.title);
+  }
+
   async function handleNewChat() {
     const conv = await createConversation();
     setConversations((prev) => [conv, ...prev]);
     setActiveId(conv.id);
     setMessages([]);
     setStreamingText("");
+    setEditingId(conv.id);
+    setTitleDraft(conv.title);
   }
 
   async function handleDelete(id: number) {
     await deleteConversation(id);
+    if (editingId === id) setEditingId(null);
     const list = await refreshConversations();
     if (activeId === id) {
       if (list.length === 0) {
@@ -77,6 +115,8 @@ export default function App() {
         setConversations([conv]);
         setActiveId(conv.id);
         setMessages([]);
+        setEditingId(conv.id);
+        setTitleDraft(conv.title);
       } else {
         setActiveId(list[0].id);
       }
@@ -125,6 +165,8 @@ export default function App() {
     });
   }
 
+  const activeConversation = conversations.find((c) => c.id === activeId);
+
   return (
     <div className="shell">
       <aside className="sidebar">
@@ -154,8 +196,24 @@ export default function App() {
               key={c.id}
               className={`conv-item ${c.id === activeId ? "active" : ""}`}
             >
-              <button type="button" className="conv-title" onClick={() => setActiveId(c.id)}>
-                {c.title}
+              <EditableConversationTitle
+                conversationId={c.id}
+                title={c.title}
+                isEditing={editingId === c.id}
+                draft={editingId === c.id ? titleDraft : c.title}
+                onStartEdit={startEditing}
+                onChangeDraft={setTitleDraft}
+                onCommit={commitTitle}
+                onCancel={() => setEditingId(null)}
+                onSelect={setActiveId}
+              />
+              <button
+                type="button"
+                className="conv-rename"
+                title="Rename"
+                onClick={() => startEditing(c.id)}
+              >
+                Edit
               </button>
               <button
                 type="button"
@@ -187,7 +245,21 @@ export default function App() {
 
       <main className="main">
         <header className="main-header">
-          <h2>{conversations.find((c) => c.id === activeId)?.title ?? "Chat"}</h2>
+          {activeConversation ? (
+            <EditableConversationTitle
+              conversationId={activeConversation.id}
+              title={activeConversation.title}
+              isEditing={editingId === activeConversation.id}
+              draft={editingId === activeConversation.id ? titleDraft : activeConversation.title}
+              className="main-title"
+              onStartEdit={startEditing}
+              onChangeDraft={setTitleDraft}
+              onCommit={commitTitle}
+              onCancel={() => setEditingId(null)}
+            />
+          ) : (
+            <h2>Chat</h2>
+          )}
         </header>
 
         {error && <div className="banner error">{error}</div>}
