@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 import subprocess
 import sys
+import threading
 from pathlib import Path
+from typing import Any
 
 
 def _entry_project_root() -> Path:
@@ -58,10 +61,38 @@ def ensure_dependencies() -> None:
     subprocess.check_call(cmd)
 
 
+def _event_loop_running() -> bool:
+    try:
+        asyncio.get_running_loop()
+        return True
+    except RuntimeError:
+        return False
+
+
+def _run_uvicorn(app: Any, host: str, port: int) -> None:
+    import uvicorn
+
+    kwargs = dict(host=host, port=port, log_level="info")
+    if _event_loop_running():
+        # Cloudera / IPython Applications already have an asyncio loop (e.g. Cell In[n]).
+        print(
+            "IPython event loop detected — starting uvicorn in a worker thread.",
+            flush=True,
+        )
+
+        def _serve() -> None:
+            uvicorn.run(app, **kwargs)
+
+        thread = threading.Thread(target=_serve, name="uvicorn", daemon=False)
+        thread.start()
+        thread.join()
+        return
+
+    uvicorn.run(app, **kwargs)
+
+
 def main() -> None:
     ensure_dependencies()
-
-    import uvicorn
 
     from app.config import settings
     from app.main import app
@@ -76,12 +107,7 @@ def main() -> None:
             flush=True,
         )
 
-    uvicorn.run(
-        app,
-        host=settings.host,
-        port=settings.resolve_port(),
-        log_level="info",
-    )
+    _run_uvicorn(app, host=settings.host, port=settings.resolve_port())
 
 
 # Cloudera AI may execute this script inside IPython (Cell In[n]) without __file__.
