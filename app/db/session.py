@@ -26,6 +26,13 @@ def init_db() -> None:
     db_path = settings.state_db_path or (settings.project_root / "data" / "state.db")
     db_path.parent.mkdir(parents=True, exist_ok=True)
     Base.metadata.create_all(bind=engine)
+    db = SessionLocal()
+    try:
+        from app.services.model_settings import get_or_create_settings
+
+        get_or_create_settings(db)
+    finally:
+        db.close()
 
 
 def get_db() -> Generator[Session, None, None]:

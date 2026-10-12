@@ -6,6 +6,7 @@ from openai import AsyncOpenAI
 
 from app.config import settings
 from app.schemas import ImageAttachment
+from app.services.model_settings import ResolvedModelConfig
 
 
 def build_user_content(text: str, images: Iterable[ImageAttachment]) -> str | list[dict[str, Any]]:
@@ -45,19 +46,20 @@ def to_openai_messages(
     return messages
 
 
-def get_client() -> AsyncOpenAI:
+def get_client(resolved: ResolvedModelConfig) -> AsyncOpenAI:
     return AsyncOpenAI(
-        base_url=settings.llm_base_url,
-        api_key=settings.llm_api_key or "not-needed",
+        base_url=resolved.endpoint_url,
+        api_key=resolved.api_token or "not-needed",
     )
 
 
 async def stream_chat_completion(
     messages: list[dict[str, Any]],
-    model: str | None = None,
+    resolved: ResolvedModelConfig,
+    model_override: str | None = None,
 ) -> AsyncIterator[str]:
-    client = get_client()
-    chosen = model or settings.llm_model
+    client = get_client(resolved)
+    chosen = model_override or resolved.model_id
     stream = await client.chat.completions.create(
         model=chosen,
         messages=messages,

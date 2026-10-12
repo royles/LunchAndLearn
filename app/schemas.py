@@ -4,11 +4,25 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 
-class PublicConfig(BaseModel):
-    llm_base_url: str
-    llm_model: str
+class ModelSettingsPublic(BaseModel):
+    model_endpoint_url: str
+    model_id: str
+    model_token_masked: str | None = None
+    has_model_token: bool = False
     supports_multimodal: bool = True
     supports_streaming: bool = True
+    updated_at: datetime
+
+
+class ModelSettingsUpdate(BaseModel):
+    model_endpoint_url: str = Field(min_length=1, max_length=2048)
+    model_id: str = Field(min_length=1, max_length=256)
+    # Plaintext only on write; never returned by the API.
+    model_token: str | None = Field(
+        default=None,
+        max_length=8192,
+        description="New API token. Omit to keep existing. Empty string clears the token.",
+    )
 
 
 class ConversationCreate(BaseModel):

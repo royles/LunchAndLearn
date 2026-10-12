@@ -2,20 +2,22 @@ import { useCallback, useEffect, useState } from "react";
 import {
   createConversation,
   deleteConversation,
-  fetchConfig,
+  fetchModelSettings,
   listConversations,
   listMessages,
   streamChat,
   type Conversation,
   type ImageAttachment,
   type Message,
-  type PublicConfig,
+  type ModelSettingsPublic,
 } from "./api/client";
 import { ChatComposer } from "./components/ChatComposer";
 import { MessageBubble } from "./components/MessageBubble";
+import { ModelSettingsPanel } from "./components/ModelSettingsPanel";
 
 export default function App() {
-  const [config, setConfig] = useState<PublicConfig | null>(null);
+  const [modelSettings, setModelSettings] = useState<ModelSettingsPublic | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<number | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -32,7 +34,7 @@ export default function App() {
   useEffect(() => {
     (async () => {
       try {
-        setConfig(await fetchConfig());
+        setModelSettings(await fetchModelSettings());
         const list = await refreshConversations();
         if (list.length === 0) {
           const created = await createConversation();
@@ -133,9 +135,19 @@ export default function App() {
             <p className="brand-sub">OpenAI-compatible · streaming · vision</p>
           </div>
         </div>
-        <button type="button" className="new-chat-btn" onClick={handleNewChat}>
-          + New chat
-        </button>
+        <div className="sidebar-actions">
+          <button type="button" className="new-chat-btn" onClick={handleNewChat}>
+            + New chat
+          </button>
+          <button
+            type="button"
+            className="settings-btn"
+            onClick={() => setSettingsOpen(true)}
+            title="Model settings"
+          >
+            Model
+          </button>
+        </div>
         <nav className="conv-list">
           {conversations.map((c) => (
             <div
@@ -156,13 +168,22 @@ export default function App() {
             </div>
           ))}
         </nav>
-        {config && (
+        {modelSettings && (
           <footer className="sidebar-footer">
-            <span className="mono">{config.llm_model}</span>
-            <span className="muted truncate">{config.llm_base_url}</span>
+            <span className="mono">{modelSettings.model_id}</span>
+            <span className="muted truncate">{modelSettings.model_endpoint_url}</span>
+            {modelSettings.has_model_token && (
+              <span className="muted">Token {modelSettings.model_token_masked}</span>
+            )}
           </footer>
         )}
       </aside>
+
+      <ModelSettingsPanel
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        onSaved={setModelSettings}
+      />
 
       <main className="main">
         <header className="main-header">

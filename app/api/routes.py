@@ -6,7 +6,6 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.config import settings
 from app.db.models import Conversation, Message
 from app.db.session import SessionLocal, get_db
 from app.schemas import (
@@ -15,7 +14,15 @@ from app.schemas import (
     ConversationOut,
     ConversationUpdate,
     MessageOut,
-    PublicConfig,
+    ModelSettingsPublic,
+    ModelSettingsUpdate,
+)
+from app.services.crypto import TokenEncryptionError
+from app.services.model_settings import (
+    get_or_create_settings,
+    resolve_for_inference,
+    to_public,
+    update_settings,
 )
 from app.services.llm import (
     build_user_content,
@@ -28,12 +35,29 @@ from app.services.llm import (
 router = APIRouter(prefix="/api/v1")
 
 
-@router.get("/config", response_model=PublicConfig)
-def public_config() -> PublicConfig:
-    return PublicConfig(
-        llm_base_url=settings.llm_base_url,
-        llm_model=settings.llm_model,
-    )
+@router.get("/model-settings", response_model=ModelSettingsPublic)
+def get_model_settings(db: Session = Depends(get_db)) -> dict:
+    row = get_or_create_settings(db)
+    return to_public(row)
+
+
+@router.put("/model-settings", response_model=ModelSettingsPublic)
+def put_model_settings(
+    body: ModelSettingsUpdate, db: Session = Depends(get_db)
+) -> dict:
+    clear_token = body.model_token is not None and body.model_token.strip() == ""
+    token_to_set = None if clear_token or body.model_token is None else body.model_token
+    try:
+        row = update_settings(
+            db,
+            endpoint_url=body.model_endpoint_url,
+            model_id=body.model_id,
+            model_token=token_to_set,
+            clear_token=clear_token,
+        )
+    except TokenEncryptionError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    return to_public(row)
 
 
 @router.get("/me")
@@ -138,11 +162,17 @@ async def chat_stream(
         history.append((row.role, parse_stored_content(row.content)))
 
     openai_messages = to_openai_messages(history)
+    try:
+        resolved = resolve_for_inference(db)
+    except TokenEncryptionError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
     async def event_generator():
         assistant_parts: list[str] = []
         try:
-            async for token in stream_chat_completion(openai_messages, body.model):
+            async for token in stream_chat_completion(
+                openai_messages, resolved, body.model
+            ):
                 assistant_parts.append(token)
                 payload = json.dumps({"type": "token", "content": token})
                 yield f"data: {payload}\n\n"

@@ -10,6 +10,18 @@ def utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+class ModelSettings(Base):
+    """Singleton row (id=1) for OpenAI-compatible model connection settings."""
+
+    __tablename__ = "model_settings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    endpoint_url: Mapped[str] = mapped_column(String(2048))
+    model_id: Mapped[str] = mapped_column(String(256))
+    token_ciphertext: Mapped[str | None] = mapped_column(Text, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 class Conversation(Base):
     __tablename__ = "conversations"
 

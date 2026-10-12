@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     llm_model: str = "llama3.2"
     llm_max_tokens: int = 4096
 
+    # Fernet key (url-safe base64) for encrypting model tokens at rest in SQLite.
+    model_token_encryption_key: str = ""
+
     @property
     def database_url(self) -> str:
         db_path = self.state_db_path or (self.project_root / "data" / "state.db")

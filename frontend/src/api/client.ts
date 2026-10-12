@@ -22,11 +22,21 @@ export type Conversation = {
   updated_at: string;
 };
 
-export type PublicConfig = {
-  llm_base_url: string;
-  llm_model: string;
+export type ModelSettingsPublic = {
+  model_endpoint_url: string;
+  model_id: string;
+  model_token_masked: string | null;
+  has_model_token: boolean;
   supports_multimodal: boolean;
   supports_streaming: boolean;
+  updated_at: string;
+};
+
+export type ModelSettingsUpdate = {
+  model_endpoint_url: string;
+  model_id: string;
+  /** Omit to keep existing token; empty string clears it. Never returned from GET. */
+  model_token?: string;
 };
 
 async function parseJson<T>(res: Response): Promise<T> {
@@ -37,8 +47,20 @@ async function parseJson<T>(res: Response): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export async function fetchConfig(): Promise<PublicConfig> {
-  return parseJson(await fetch("/api/v1/config"));
+export async function fetchModelSettings(): Promise<ModelSettingsPublic> {
+  return parseJson(await fetch("/api/v1/model-settings"));
+}
+
+export async function saveModelSettings(
+  body: ModelSettingsUpdate,
+): Promise<ModelSettingsPublic> {
+  return parseJson(
+    await fetch("/api/v1/model-settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+  );
 }
 
 export async function listConversations(): Promise<Conversation[]> {

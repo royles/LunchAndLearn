@@ -26,13 +26,26 @@ Set **`CDSW_APP_POLLING_ENDPOINT=/healthcheck`** when creating the Application.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `LLM_BASE_URL` | `http://127.0.0.1:11434/v1` | OpenAI-compatible API base (Ollama default) |
-| `LLM_API_KEY` | `not-needed` | API key if your server requires one |
-| `LLM_MODEL` | `llama3.2` | Model name passed to chat completions |
+| `MODEL_TOKEN_ENCRYPTION_KEY` | _(required to save tokens)_ | Fernet key for encrypting model tokens in SQLite |
+| `LLM_BASE_URL` | `http://127.0.0.1:11434/v1` | Initial endpoint until configured in the UI |
+| `LLM_API_KEY` | `not-needed` | Optional seed token (encrypted on first boot if key is set) |
+| `LLM_MODEL` | `llama3.2` | Initial model id until configured in the UI |
 | `LLM_MAX_TOKENS` | `4096` | Max tokens per completion |
 | `STATE_DB_PATH` | `data/state.db` | SQLite file path (project NFS on CML) |
 
-Point `LLM_BASE_URL` at any OpenAI-compatible endpoint reachable from the application engine (same host, sidecar, or cluster service).
+Generate an encryption key:
+
+```bash
+python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+```
+
+### Model settings (persisted in SQLite)
+
+Configure via **Model** in the sidebar or `PUT /api/v1/model-settings`:
+
+- **model_endpoint_url** — OpenAI-compatible base URL
+- **model_id** — model name for chat completions
+- **model_token** — write-only; stored **encrypted**; API responses expose **`model_token_masked`** (`••••••••••••`) only, never plaintext
 
 ## Local development
 
@@ -74,7 +87,7 @@ Open http://127.0.0.1:8090 for the combined UI + API.
 ## API overview
 
 - `GET /healthcheck` — platform health
-- `GET /api/v1/config` — public LLM settings
+- `GET/PUT /api/v1/model-settings` — persisted endpoint, model id, masked token indicator
 - `GET/POST /api/v1/conversations` — list / create chats
 - `GET /api/v1/conversations/{id}/messages` — history
 - `POST /api/v1/conversations/{id}/chat` — **SSE** stream (`data: {"type":"token","content":"..."}` … `{"type":"done","message":{...}}`)

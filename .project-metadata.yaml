@@ -10,12 +10,16 @@ environment_variables:
   CDSW_APP_POLLING_ENDPOINT:
     default: "/healthcheck"
     description: Health endpoint for CML application status polling
+  MODEL_TOKEN_ENCRYPTION_KEY:
+    default: ""
+    description: Fernet key for encrypting model tokens at rest (required to save tokens)
+    required: true
   LLM_BASE_URL:
     default: "http://127.0.0.1:11434/v1"
-    description: OpenAI-compatible API base URL
+    description: Initial OpenAI-compatible API base URL (overridden by UI settings in SQLite)
   LLM_MODEL:
     default: "llama3.2"
-    description: Model id for chat completions
+    description: Initial model id (overridden by UI settings in SQLite)
 tasks:
   - type: start_application
     subdomain: local-llm-chat
